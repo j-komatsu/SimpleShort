@@ -1,0 +1,99 @@
+openapi: 3.0.3
+info:
+  title: SimpleShort API
+  version: 1.0.0
+  description: 日本語ID対応のシンプルなURL短縮API（DBレス・ファイル保存）
+
+servers:
+  - url: http://localhost
+
+paths:
+  /api/register:
+    post:
+      summary: 短縮URLを登録
+      description: 任意の短縮ID（日本語含む）を指定してURLを登録する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - original_url
+              properties:
+                original_url:
+                  type: string
+                  format: uri
+                  description: 短縮したい元のURL
+                  example: https://example.com/page
+                custom_id:
+                  type: string
+                  maxLength: 20
+                  description: 任意の短縮ID（日本語含む）
+                  example: おすすめリンク
+      responses:
+        '200':
+          description: 短縮URLの登録に成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  short_url:
+                    type: string
+                    example: http://localhost/r/%E3%81%8A%E3%81%99%E3%81%99%E3%82%81%E3%83%AA%E3%83%B3%E3%82%AF
+        '409':
+          description: ID重複エラー
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 指定されたIDはすでに使用されています。
+        '422':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /r/{id}:
+    get:
+      summary: 短縮URLリダイレクト
+      description: 短縮IDに紐づく元のURLにリダイレクトする。
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: URLエンコードされた短縮ID
+      responses:
+        '302':
+          description: リダイレクト成功（元URLへ転送）
+        '404':
+          description: IDが見つからない
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Not found.
+
+components:
+  schemas:
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: The given data was invalid.
+        errors:
+          type: object
+          example:
+            original_url:
+              - The original url field is required.
